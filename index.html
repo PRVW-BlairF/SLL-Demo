@@ -1,0 +1,281 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Singlife — Advisor Horoscope Dashboards</title>
+
+  <!-- Tailwind -->
+  <script src="https://cdn.tailwindcss.com"></script>
+
+  <!-- Chart.js + Zoom -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-zoom@2.0.1/dist/chartjs-plugin-zoom.umd.min.js"></script>
+
+  <style>
+    :root{
+      --main-red: rgb(255,0,8);
+      --purple: rgb(120,55,128);
+      --teal: rgb(0,186,164);
+      --orange: rgb(244,120,21);
+      --charcoal: rgb(67, 67, 67);
+    }
+    body{background:#f5f5f5;color:#0a0a0f}
+    .card{
+      background:linear-gradient(180deg,rgba(0,186,164,.05),rgba(244,120,21,.05));
+      border:1px solid rgba(0,0,0,.08);
+      border-radius:16px;
+      padding:18px;
+      box-shadow:0 6px 24px rgba(16,24,40,.05)
+    }
+    .tab-link{display:block;width:100%;padding:10px 14px;border-radius:8px;transition:background .2s}
+    .tab-link:hover{background:rgba(255,255,255,.08)}
+    .tab-link.active{background:var(--main-red);color:#fff!important;font-weight:600}
+    .updated-pill{font-size:.72rem;color:#6b7280}
+  </style>
+</head>
+<body class="flex min-h-screen">
+
+  <!-- Sidebar (charcoal) -->
+  <aside class="w-64 bg-[color:var(--charcoal)] text-white flex flex-col">
+    <div class="p-6">
+      <img src="singlife-logo.png" alt="Singlife Logo" class="h-10 mb-2" />
+      <div class="text-xs opacity-70">Advisor Horoscope</div>
+    </div>
+    <nav class="px-3 space-y-1">
+      <a href="#" class="tab-link active" data-tab="perf">Performance & Classification</a>
+      <a href="#" class="tab-link" data-tab="clients">Client Outcomes</a>
+      <a href="#" class="tab-link" data-tab="risk">Risk & Governance</a>
+    </nav>
+    <!-- (HaloAI box removed) -->
+    <div class="h-6"></div>
+  </aside>
+
+  <!-- Main -->
+  <main class="flex-1 flex flex-col">
+
+    <!-- Header bar -->
+    <div class="sticky top-0 z-40 bg-white/95 backdrop-blur border-b border-gray-200">
+      <div class="px-6 sm:px-8 py-3 flex items-center justify-between">
+        <h1 id="dashboardTitle" class="text-lg sm:text-xl font-semibold text-[rgb(255,0,8)]">
+          Performance & Classification
+        </h1>
+        <div class="flex items-center gap-3">
+          <button class="w-9 h-9 rounded-lg bg-gray-100 hover:bg-gray-200 grid place-items-center" aria-label="Settings">⚙️</button>
+          <div class="text-right">
+            <div class="text-sm font-semibold leading-tight">James Tan</div>
+            <div class="text-xs text-gray-500 leading-tight">james.tan@singlife.com</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- CONTENT -->
+    <section class="flex-1 overflow-auto p-8 space-y-8">
+      <!-- PERFORMANCE -->
+      <div id="tab-perf" class="tab-panel space-y-8">
+        <div class="card">
+          <div class="flex items-start justify-between mb-2">
+            <h2 class="text-lg font-bold">Advisor Classification Mix</h2>
+            <span class="updated-pill" data-updated></span>
+          </div>
+          <div class="h-[400px]"><canvas id="chartClassMix"></canvas></div>
+        </div>
+        <div class="card">
+          <div class="flex items-start justify-between mb-2">
+            <h2 class="text-lg font-bold">Sales Activeness (Indexed)</h2>
+            <span class="updated-pill" data-updated></span>
+          </div>
+          <div class="h-[400px]"><canvas id="chartSalesActive"></canvas></div>
+        </div>
+        <div class="card">
+          <div class="flex items-start justify-between mb-2">
+            <h2 class="text-lg font-bold">Product Mix</h2>
+            <span class="updated-pill" data-updated></span>
+          </div>
+          <div class="h-[400px]"><canvas id="chartProductMix"></canvas></div>
+        </div>
+      </div>
+
+      <!-- CLIENT OUTCOMES -->
+      <div id="tab-clients" class="tab-panel hidden space-y-8">
+        <div class="card">
+          <div class="flex items-start justify-between mb-2">
+            <h2 class="text-lg font-bold">Persistency Rate</h2>
+            <span class="updated-pill" data-updated></span>
+          </div>
+          <div class="h-[400px]"><canvas id="chartPersistency"></canvas></div>
+        </div>
+        <div class="card">
+          <div class="flex items-start justify-between mb-2">
+            <h2 class="text-lg font-bold">Acquisition & Retention</h2>
+            <span class="updated-pill" data-updated></span>
+          </div>
+          <div class="h-[400px]"><canvas id="chartAcqRet"></canvas></div>
+        </div>
+        <div class="card">
+          <div class="flex items-start justify-between mb-2">
+            <h2 class="text-lg font-bold">Avg Policies per Customer</h2>
+            <span class="updated-pill" data-updated></span>
+          </div>
+          <div class="h-[400px]"><canvas id="chartPPC"></canvas></div>
+        </div>
+      </div>
+
+      <!-- RISK -->
+      <div id="tab-risk" class="tab-panel hidden space-y-8">
+        <div class="card">
+          <div class="flex items-start justify-between mb-2">
+            <h2 class="text-lg font-bold">Claims Ratio</h2>
+            <span class="updated-pill" data-updated></span>
+          </div>
+          <div class="h-[400px]"><canvas id="chartClaimsRatio"></canvas></div>
+        </div>
+        <div class="card">
+          <div class="flex items-start justify-between mb-2">
+            <h2 class="text-lg font-bold">Early Lapse & Surrender Rates</h2>
+            <span class="updated-pill" data-updated></span>
+          </div>
+          <div class="h-[400px]"><canvas id="chartLapse"></canvas></div>
+        </div>
+        <div class="card">
+          <div class="flex items-start justify-between mb-2">
+            <h2 class="text-lg font-bold">Complaint Frequency</h2>
+            <span class="updated-pill" data-updated></span>
+          </div>
+          <div class="h-[400px]"><canvas id="chartComplaints"></canvas></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- FOOTER -->
+    <footer class="border-top border-gray-200 bg-white px-6 sm:px-8 pt-3 pb-6">
+      <div class="text-center text-xs text-gray-500">
+        Powered by <span class="font-semibold">PRVW Decision Intelligence</span>
+      </div>
+      <div class="mt-2 flex justify-center">
+        <img src="PRVW Dark Green with Lime.svg" alt="PRVW Decision Intelligence" class="h-8">
+      </div>
+    </footer>
+  </main>
+
+  <script>
+    // Tabs
+    const tabs = document.querySelectorAll('.tab-link');
+    const panels = {
+      perf: document.getElementById('tab-perf'),
+      clients: document.getElementById('tab-clients'),
+      risk: document.getElementById('tab-risk')
+    };
+    const title = document.getElementById('dashboardTitle');
+    tabs.forEach(btn=>{
+      btn.addEventListener('click',e=>{
+        e.preventDefault();
+        tabs.forEach(t=>t.classList.remove('active'));
+        btn.classList.add('active');
+        const tab = btn.dataset.tab;
+        Object.values(panels).forEach(p=>p.classList.add('hidden'));
+        panels[tab].classList.remove('hidden');
+        title.textContent =
+          tab==='perf' ? 'Performance & Classification' :
+          tab==='clients' ? 'Client Outcomes' :
+          'Risk & Governance';
+      });
+    });
+
+    // Last updated (today)
+    const updatedEls = document.querySelectorAll('[data-updated]');
+    const today = new Date().toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' });
+    updatedEls.forEach(el => el.textContent = `Last updated: ${today}`);
+
+    // Chart helpers
+    const months=['Aug','Sep','Oct','Nov','Dec','Jan','Feb','Mar','Apr','May','Jun','Jul'];
+    const baseOpts=({stacked=false}={})=>({
+      responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{labels:{usePointStyle:true}},
+        zoom:{pan:{enabled:true,mode:'xy'},zoom:{wheel:{enabled:true},pinch:{enabled:true},mode:'xy'}}},
+      scales:{x:{stacked},y:{stacked,beginAtZero:true}}
+    });
+
+    // Charts (Singlife palette) — Advisor Mix now totals 5,000
+    new Chart(document.getElementById('chartClassMix'),{
+      type:'doughnut',
+      data:{
+        labels:['Strategic Growth','Developing Performers','Watchlist'],
+        datasets:[{
+          data:[2100,1900,1000], /* sum = 5000 */
+          backgroundColor:['rgb(255,0,8)','rgb(120,55,128)','rgb(0,186,164)'],
+          borderWidth:1
+        }]
+      },
+      options:baseOpts()
+    });
+
+    new Chart(document.getElementById('chartSalesActive'),{
+      type:'line',
+      data:{labels:months,datasets:[
+        {label:'Sales Activeness',data:[72,75,78,80,84,86,88,90,95,97,100,104],borderColor:'rgb(255,0,8)',fill:false,tension:.25},
+        {label:'Productivity Index',data:[68,70,74,77,81,83,86,88,92,95,98,101],borderColor:'rgb(0,186,164)',fill:false,tension:.25}
+      ]},
+      options:baseOpts()
+    });
+
+    new Chart(document.getElementById('chartProductMix'),{
+      type:'bar',
+      data:{labels:['Protection','Savings','Health','ILP'],
+        datasets:[{label:'Share',data:[36,28,22,14],backgroundColor:['rgb(255,0,8)','rgb(120,55,128)','rgb(0,186,164)','rgb(244,120,21)']}]},
+      options:baseOpts({stacked:true})
+    });
+
+    new Chart(document.getElementById('chartPersistency'),{
+      type:'line',
+      data:{labels:months,datasets:[
+        {label:'Persistency %',data:[86,86.5,87,87.2,87.8,88.1,88.5,88.9,89.2,89.6,89.9,90.3],
+         borderColor:'rgb(0,186,164)',backgroundColor:'rgba(0,186,164,.2)',fill:true,tension:.25}
+      ]},
+      options:baseOpts()
+    });
+
+    new Chart(document.getElementById('chartAcqRet'),{
+      type:'bar',
+      data:{labels:months,datasets:[
+        {label:'Acquisition',data:[520,560,610,640,680,720,760,800,820,860,900,940],backgroundColor:'rgb(255,0,8)',stack:'v'},
+        {label:'Retention',data:[410,430,450,470,500,520,550,570,600,620,650,680],backgroundColor:'rgb(244,120,21)',stack:'v'}
+      ]},
+      options:baseOpts({stacked:true})
+    });
+
+    new Chart(document.getElementById('chartPPC'),{
+      type:'bar',
+      data:{labels:['Q1','Q2','Q3','Q4'],
+        datasets:[{label:'Policies per Customer',data:[1.18,1.22,1.25,1.28],backgroundColor:'rgb(120,55,128)'}]},
+      options:baseOpts()
+    });
+
+    new Chart(document.getElementById('chartClaimsRatio'),{
+      type:'line',
+      data:{labels:months,datasets:[
+        {label:'Claims Ratio %',data:[42,41,43,40,39,38,39,37,36,35,35,34],borderColor:'rgb(255,0,8)',fill:false,tension:.25}
+      ]},
+      options:baseOpts()
+    });
+
+    new Chart(document.getElementById('chartLapse'),{
+      type:'bar',
+      data:{labels:['0–6m','6–12m','12–18m','18–24m'],
+        datasets:[
+          {label:'Lapse %',data:[4.2,3.1,2.2,1.8],backgroundColor:'rgb(255,0,8)'},
+          {label:'Surrender %',data:[2.8,2.1,1.6,1.4],backgroundColor:'rgb(0,186,164)'}
+        ]},
+      options:baseOpts({stacked:true})
+    });
+
+    new Chart(document.getElementById('chartComplaints'),{
+      type:'bar',
+      data:{labels:['Q1','Q2','Q3','Q4'],
+        datasets:[{label:'Complaints per 1k Policies',data:[1.9,1.7,1.6,1.4],backgroundColor:'rgb(244,120,21)'}]},
+      options:baseOpts()
+    });
+  </script>
+</body>
+</html>

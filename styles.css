@@ -1,0 +1,45 @@
+:root {
+  --brand-purple: #7c3aed;
+  --brand-pink: #ec4899;
+}
+
+/* Cards */
+.card {
+  background: linear-gradient(180deg, rgba(124,58,237,0.04), rgba(236,72,153,0.04));
+  border: 1px solid rgba(124,58,237,0.25);
+  border-radius: 14px;
+  padding: 16px;
+  box-shadow: 0 6px 24px rgba(16, 24, 40, 0.05);
+}
+
+/* Titles */
+.card-title {
+  font-weight: 700;
+  margin-bottom: 10px;
+}
+
+/* Chips / small buttons */
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: .5rem;
+  padding: .35rem .7rem;
+  border: 1px solid rgba(124,58,237,0.35);
+  background: white;
+  border-radius: 999px;
+  font-size: .8rem;
+  transition: .15s ease;
+}
+.chip:hover { background: rgba(124,58,237,0.05); }
+
+/* Table striping */
+.odd-row { background: rgba(124,58,237,0.05); }
+
+/* Muted text */
+.muted { color: #64748b; }
+
+/* Sidebar active */
+.tab-link.active {
+  background: linear-gradient(90deg, var(--brand-purple), var(--brand-pink));
+  color: white;
+}
