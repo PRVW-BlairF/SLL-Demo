@@ -18,7 +18,7 @@
       --purple: rgb(120,55,128);
       --teal: rgb(0,186,164);
       --orange: rgb(244,120,21);
-      --charcoal: rgb(67, 67, 67);
+      --charcoal: rgb(67,67,67); /* updated sidebar colour */
     }
     body{background:#f5f5f5;color:#0a0a0f}
     .card{
@@ -32,11 +32,14 @@
     .tab-link:hover{background:rgba(255,255,255,.08)}
     .tab-link.active{background:var(--main-red);color:#fff!important;font-weight:600}
     .updated-pill{font-size:.72rem;color:#6b7280}
+    .modal-bg{background:rgba(0,0,0,.35)}
+    .table-head{color:#64748b}
+    .pill{display:inline-flex;align-items:center;gap:.4rem;font-size:.72rem;padding:.2rem .5rem;border:1px solid rgba(0,0,0,.08);border-radius:999px;background:#fff}
   </style>
 </head>
 <body class="flex min-h-screen">
 
-  <!-- Sidebar (charcoal) -->
+  <!-- Sidebar -->
   <aside class="w-64 bg-[color:var(--charcoal)] text-white flex flex-col">
     <div class="p-6">
       <img src="singlife-logo.png" alt="Singlife Logo" class="h-10 mb-2" />
@@ -47,7 +50,6 @@
       <a href="#" class="tab-link" data-tab="clients">Client Outcomes</a>
       <a href="#" class="tab-link" data-tab="risk">Risk & Governance</a>
     </nav>
-    <!-- (HaloAI box removed) -->
     <div class="h-6"></div>
   </aside>
 
@@ -80,6 +82,7 @@
             <span class="updated-pill" data-updated></span>
           </div>
           <div class="h-[400px]"><canvas id="chartClassMix"></canvas></div>
+          <p class="text-xs text-slate-600 mt-3">Tip: click a slice to drill into advisors in that segment.</p>
         </div>
         <div class="card">
           <div class="flex items-start justify-between mb-2">
@@ -159,6 +162,43 @@
     </footer>
   </main>
 
+  <!-- MODAL: Advisor list -->
+  <div id="advisorModal" class="fixed inset-0 hidden modal-bg z-50">
+    <div class="absolute inset-0" id="modalBg"></div>
+    <div class="relative max-w-3xl mx-auto mt-20 bg-white rounded-2xl shadow-xl overflow-hidden">
+      <div class="px-6 py-4 border-b flex items-center justify-between">
+        <div>
+          <div class="text-lg font-semibold">Advisors — <span id="segmentName">Segment</span></div>
+          <div class="text-xs text-slate-600">
+            Showing <span id="advisorCount">0</span> advisors across 5 firms
+          </div>
+        </div>
+        <button id="closeModal" class="px-3 py-1.5 rounded-md bg-gray-100 hover:bg-gray-200">Close</button>
+      </div>
+
+      <div class="px-6 py-4 flex flex-wrap gap-3 items-center">
+        <span class="pill">Filter by firm</span>
+        <select id="firmFilter" class="border rounded-md px-2 py-1 text-sm">
+          <option value="">All firms</option>
+        </select>
+        <input id="nameSearch" type="text" placeholder="Search advisor name…" class="border rounded-md px-2 py-1 text-sm flex-1 min-w-[160px]" />
+      </div>
+
+      <div class="px-6 pb-6 max-h-[60vh] overflow-auto">
+        <table class="w-full text-sm">
+          <thead class="table-head">
+            <tr class="text-left">
+              <th class="py-2">Advisor</th>
+              <th>Firm</th>
+              <th>Segment</th>
+            </tr>
+          </thead>
+          <tbody id="advisorBody"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
   <script>
     // Tabs
     const tabs = document.querySelectorAll('.tab-link');
@@ -183,10 +223,9 @@
       });
     });
 
-    // Last updated (today)
-    const updatedEls = document.querySelectorAll('[data-updated]');
-    const today = new Date().toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' });
-    updatedEls.forEach(el => el.textContent = `Last updated: ${today}`);
+    // Last updated
+    const today = new Date().toLocaleDateString(undefined, { year:'numeric', month:'short', day:'numeric' });
+    document.querySelectorAll('[data-updated]').forEach(el => el.textContent = `Last updated: ${today}`);
 
     // Chart helpers
     const months=['Aug','Sep','Oct','Nov','Dec','Jan','Feb','Mar','Apr','May','Jun','Jul'];
@@ -197,8 +236,9 @@
       scales:{x:{stacked},y:{stacked,beginAtZero:true}}
     });
 
-    // Charts (Singlife palette) — Advisor Mix now totals 5,000
-    new Chart(document.getElementById('chartClassMix'),{
+    // --- Performance charts
+    const mixCtx = document.getElementById('chartClassMix');
+    const classMixChart = new Chart(mixCtx,{
       type:'doughnut',
       data:{
         labels:['Strategic Growth','Developing Performers','Watchlist'],
@@ -208,7 +248,7 @@
           borderWidth:1
         }]
       },
-      options:baseOpts()
+      options:{ ...baseOpts(), onClick: handleClassMixClick }
     });
 
     new Chart(document.getElementById('chartSalesActive'),{
@@ -227,6 +267,7 @@
       options:baseOpts({stacked:true})
     });
 
+    // --- Client Outcomes
     new Chart(document.getElementById('chartPersistency'),{
       type:'line',
       data:{labels:months,datasets:[
@@ -235,7 +276,6 @@
       ]},
       options:baseOpts()
     });
-
     new Chart(document.getElementById('chartAcqRet'),{
       type:'bar',
       data:{labels:months,datasets:[
@@ -244,7 +284,6 @@
       ]},
       options:baseOpts({stacked:true})
     });
-
     new Chart(document.getElementById('chartPPC'),{
       type:'bar',
       data:{labels:['Q1','Q2','Q3','Q4'],
@@ -252,6 +291,7 @@
       options:baseOpts()
     });
 
+    // --- Risk
     new Chart(document.getElementById('chartClaimsRatio'),{
       type:'line',
       data:{labels:months,datasets:[
@@ -259,7 +299,6 @@
       ]},
       options:baseOpts()
     });
-
     new Chart(document.getElementById('chartLapse'),{
       type:'bar',
       data:{labels:['0–6m','6–12m','12–18m','18–24m'],
@@ -269,13 +308,79 @@
         ]},
       options:baseOpts({stacked:true})
     });
-
     new Chart(document.getElementById('chartComplaints'),{
       type:'bar',
       data:{labels:['Q1','Q2','Q3','Q4'],
         datasets:[{label:'Complaints per 1k Policies',data:[1.9,1.7,1.6,1.4],backgroundColor:'rgb(244,120,21)'}]},
       options:baseOpts()
     });
+
+    // ---------- Drilldown data + modal logic ----------
+    const SEGMENTS = ['Strategic Growth','Developing Performers','Watchlist'];
+    const FIRMS = ['Atlas Advisory','Beacon Financial','Crescent Capital','Denali Partners','Echelon Wealth'];
+    const FIRST = ['Alex','Jamie','Taylor','Jordan','Casey','Morgan','Riley','Cameron','Avery','Peyton','Sam','Reese','Quinn','Drew','Hayden','Rowan','Elliot','Spencer','Kendall','Skyler','Devin','Harper','Finley','Blake','Eden'];
+    const LAST  = ['Tan','Lim','Ong','Lee','Ng','Goh','Chua','Koh','Yap','Teo','Wong','Chew','Heng','Toh','Yeo','Sim','Pang','Quek','Liew','Gan','Foo','Pua','Phua','Chia','Kwek'];
+
+    // Make 50 advisors deterministically (so reloads are consistent)
+    function seededRand(seed){ let x = Math.sin(seed) * 10000; return x - Math.floor(x); }
+    function pick(arr, n){ return arr[Math.floor(seededRand(n)*arr.length)]; }
+    const ADVISORS = Array.from({length:50}, (_,i)=>({
+      name: `${pick(FIRST,i)} ${pick(LAST, i+7)}`,
+      firm: FIRMS[i%FIRMS.length],
+      // Map roughly to 42% / 38% / 20% (segment index 0/1/2)
+      segment: i<21 ? SEGMENTS[0] : i<40 ? SEGMENTS[1] : SEGMENTS[2]
+    }));
+
+    // Modal refs
+    const modal = document.getElementById('advisorModal');
+    const modalBg = document.getElementById('modalBg');
+    const closeModal = document.getElementById('closeModal');
+    const segNameEl = document.getElementById('segmentName');
+    const countEl = document.getElementById('advisorCount');
+    const firmFilter = document.getElementById('firmFilter');
+    const nameSearch = document.getElementById('nameSearch');
+    const bodyEl = document.getElementById('advisorBody');
+
+    FIRMS.forEach(f => { const opt=document.createElement('option'); opt.value=f; opt.textContent=f; firmFilter.appendChild(opt); });
+
+    function openModal(segment){
+      segNameEl.textContent = segment;
+      // fresh search state
+      firmFilter.value = '';
+      nameSearch.value = '';
+      renderTable(segment);
+      modal.classList.remove('hidden');
+    }
+    function closeModalFn(){ modal.classList.add('hidden'); }
+    modalBg.addEventListener('click', closeModalFn);
+    closeModal.addEventListener('click', closeModalFn);
+    firmFilter.addEventListener('change', ()=>renderTable(segNameEl.textContent));
+    nameSearch.addEventListener('input', ()=>renderTable(segNameEl.textContent));
+
+    function renderTable(segment){
+      const q = nameSearch.value.trim().toLowerCase();
+      const firm = firmFilter.value;
+      let list = ADVISORS.filter(a => a.segment===segment);
+      if (firm) list = list.filter(a => a.firm===firm);
+      if (q) list = list.filter(a => a.name.toLowerCase().includes(q));
+      countEl.textContent = list.length.toString();
+      bodyEl.innerHTML = list.map(a =>
+        `<tr class="border-b border-gray-100">
+           <td class="py-2">${a.name}</td>
+           <td>${a.firm}</td>
+           <td><span class="pill">${a.segment}</span></td>
+         </tr>`
+      ).join('');
+    }
+
+    // Chart click handler
+    function handleClassMixClick(evt, elements){
+      const points = classMixChart.getElementsAtEventForMode(evt, 'nearest', { intersect: true }, false);
+      if (!points.length) return;
+      const idx = points[0].index;
+      const segment = SEGMENTS[idx];
+      openModal(segment);
+    }
   </script>
 </body>
 </html>
